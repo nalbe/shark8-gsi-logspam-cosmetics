@@ -1,4 +1,4 @@
-# blackview-shark8-logspam-cosmetics
+# shark8-gsi-logspam-cosmetics
 
 One cosmetic patch for the Blackview Shark 8 running an Android 13/14 AOSP GSI
 on the stock vendor image (KernelSU 0.9.4, kernel `5.10.223-rama982-gki-v1.19-ksu`).
