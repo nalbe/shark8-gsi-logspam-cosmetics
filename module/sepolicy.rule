@@ -58,3 +58,41 @@ allow system_server su process getattr
 
 # system_server CachedAppOptimizer writing to zygote tmpfs (GSI mix).
 allow system_server zygote_tmpfs file write
+
+# ---------------------------------------------------------------
+# events-buffer audit spam (daemon reads log_id_events stream)
+# these are legitimate kernel-sysfs / binder health checks that the
+# GSI/vendor mix simply never granted; allow = silence, not masking.
+# ---------------------------------------------------------------
+
+# THE big one: system_server probing system_suspend wakelock state (~1/s).
+allow system_server system_suspend process getattr
+
+# system_suspend reading battery rails via sysfs before suspend.
+allow system_suspend sysfs dir read
+allow system_suspend sysfs_batteryinfo dir read
+
+# system_server binder getattr on early-boot vendor services.
+allow system_server keystore process getattr
+allow system_server rkpdapp process getattr
+allow system_server flipendo process getattr
+allow system_server isolated_app process getattr
+allow system_server shell process getattr
+allow system_server storaged process getattr
+
+# gmscore FILE read from priv_app (gservices) and process getattr (sf).
+allow priv_app gmscore_app file read
+allow surfaceflinger gmscore_app process getattr
+
+# gmscore reading adbd properties (adb over wifi polling).
+allow gmscore_app adbd_prop file read
+allow gmscore_app system_adbd_prop file read
+
+# adbroot/adbd capability self checks while rooted adb is running.
+allow adbroot self capability sys_ptrace
+allow adbd self capability dac_override
+allow adbd self capability dac_read_search
+
+# mnld reading ro.* default_prop (open + read on the tmpfs prop files).
+allow mnld default_prop file open
+allow mnld default_prop file read

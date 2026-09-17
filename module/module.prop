@@ -1,6 +1,6 @@
 id=selinux_cosmetics
 name=SELinux logspam cosmetics (GSI mix)
-version=v2
-versionCode=2
+version=v3
+versionCode=3
 author=Bastet
 description=Silence avc find-denial spam on nonexistent vendor hwservices (default_android_hwservice) and periodic process getattr audit noise from GSI/vendor mixing. Pure allow-rules, no permissive.

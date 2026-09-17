@@ -45,6 +45,29 @@ seconds, plus a `zygote_tmpfs` write from `CachedAppOptimizer`. Same
 allow-rule treatment, in classic (space-separated) format so that old and
 new KernelSU both parse them.
 
+### 4. events-buffer audit flood (notification LED daemon feed)
+
+The on-device notification daemon streams the `log_id_events` buffer, which
+was ~98% `auditd` `avc: denied` noise (12k+ lines in a ~3.3h ring). Root
+cause: legitimate kernel-level checks on a GSI/vendor mix that lost their
+allow rules, not broken services. Allowed (fix, not masking):
+
+- `system_server` probing `system_suspend` wakelock state -> `process getattr`
+  (~1/s, THE big one, ~12300/ring)
+- `system_suspend` reading battery rails -> `sysfs`/`sysfs_batteryinfo` `dir read`
+- `system_server` binder getattr on `keystore`/`rkpdapp`/`flipendo`/
+  `isolated_app`/`shell`/`storaged`
+- `priv_app` -> `gmscore_app` `file read`, `surfaceflinger` -> `gmscore_app`
+  `process getattr`
+- `gmscore_app` reading `adbd_prop`/`system_adbd_prop` (adb-over-wifi polling)
+- `adbroot`/`adbd` self-capability pairs while rooted adb is up
+  (`sys_ptrace`, `dac_override`, `dac_read_search`)
+- `mnld` reading `default_prop` (`file open` + `file read` on the tmpfs prop
+  files; boot-time `{ open }` denial needs `open`, read alone covers nothing)
+
+Verified: after apply, `logcat -b events` shows zero `avc: denied` in live
+streaming; only real events (`dvm_lock_sample`, etc.) remain.
+
 ## Layout
 
     module/
@@ -54,7 +77,7 @@ new KernelSU both parse them.
     scripts/
       apply.sh          device-side: copy module + apply rules now + persist IMS tag
       revert.sh         device-side: remove module + reset IMS log tag
-    shark8_gsi_logspam_cosmetics_v2.zip
+    shark8_gsi_logspam_cosmetics_v3.zip
                         ready-to-flash KernelSU module zip
 
 ## Why classic (space-separated) sepolicy.rule syntax
@@ -70,7 +93,7 @@ has been cached, it keeps firing even after the rule is applied, so the
 ## Install
 
 Option A, KernelSU Manager: install/update with
-`shark8_gsi_logspam_cosmetics_v2.zip`, then reboot. `post-fs-data.sh` applies
+`shark8_gsi_logspam_cosmetics_v3.zip`, then reboot. `post-fs-data.sh` applies
 the rules at boot.
 
 Option B, in-place push on a rooted device (`adb root`):
@@ -96,14 +119,18 @@ The IMS log tag can be re-enabled at any time (no reboot needed):
 
     setprop persist.log.tag.ImsProvisioningController ""
 
-## Verified on device (2026-09-04)
+## Verified on device (2026-09-15)
 
-- Before: `avc: denied { getattr }` bursts on radio/gmscore_app/platform_app/
-  priv_app/untrusted_app/bluetooth/system_app/mediaprovider/su every few
-  seconds, `zygote_tmpfs:file { write }` from CachedAppOptimizer, and `find`
-  denials from the fingerprint/radio HALs on `default_android_hwservice`.
-- After reboot with the module: rules auto-apply at boot
-  (`post-fs-data.sh`); 0 recurring `avc: denied` in dmesg across a full
-  boot-to-bootcycle window. The only residual denials are a one-off
-  `adbroot`/`adbd` capability pair created when lifting `adb root`, which is
-  intentional and not logspam.
+- Module `selinux_cosmetics` v3 (adds `mnld -> default_prop file open`).
+- Full reboot verification: **0** `mnld` denials across boot + live window
+  (before: an `{ open }` denial from `mnld` on `default_prop` at boot).
+- Post-boot live: no recurring `avc: denied` (75s window after boot, 5
+  one-shot lines total, 4 being the intentional rooted-adb `adbroot`/`adbd`
+  capability pair, 1 rare `webview_zygote -> zygote_tmpfs file map`).
+- Boot-time once-per-boot vendor one-offs (zygote `vendor_default_prop`,
+  `mtk_hal_camera` `default_prop`, `nvram_daemon`/`fuelgauged_nvram`
+  `sysfs_dt_firmware_android`, `init_insmod_sh` `sys_nice`) are out of scope
+  for this module (single-shot, not spam).
+- Earlier run (2026-09-04): `find` denials from fingerprint/radio HALs and
+  `getattr` bursts fixed; residual one-off `adbroot`/`adbd` capability pair
+  when lifting `adb root` is intentional, not logspam.
