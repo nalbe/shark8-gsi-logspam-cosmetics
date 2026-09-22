@@ -83,10 +83,17 @@ allow system_server storaged process getattr
 # gmscore FILE read from priv_app (gservices) and process getattr (sf).
 allow priv_app gmscore_app file read
 allow surfaceflinger gmscore_app process getattr
+# priv_app scanning /proc/<gmscore pid> (dir search on the proc dir).
+allow priv_app gmscore_app dir search
+# priv_app opening /proc/<gmscore pid>/attr/current (same walk, needs open).
+allow priv_app gmscore_app file open
 
 # gmscore reading adbd properties (adb over wifi polling).
+# The tmpfs prop files need open too - read alone covers nothing (see mnld).
 allow gmscore_app adbd_prop file read
+allow gmscore_app adbd_prop file open
 allow gmscore_app system_adbd_prop file read
+allow gmscore_app system_adbd_prop file open
 
 # adbroot/adbd capability self checks while rooted adb is running.
 allow adbroot self capability sys_ptrace

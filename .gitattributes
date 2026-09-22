@@ -1,1 +1,5 @@
-* text eol=lf
+# Vendor binaries and prebuilt tooling - never text-normalize these.
+*.so binary
+*.zip binary
+module/vendor/bin/* binary
+tools/eara_boost_probe binary
