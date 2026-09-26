@@ -1,0 +1,6 @@
+id=netdagent_iptables
+name=Shark8 GSI netdagent iptables ERROR fix
+version=v1.0
+versionCode=1
+author=Bastet
+description=Patches /vendor/bin/netdagent on the Blackview Shark 8 GSI to drop the two ERROR lines the daemon itself prints on every network boost that libpowerhal asks for: "NetdagentIptables: exec() res=0, status=256" and "NetdagentService: run command firewall failed". The daemon runs each firewall command through /system/bin/iptables-wrapper-1.0, the exec succeeds and the wrapper exits 1, so run_command() logs the failure and the caller logs it again. There is no AVC denial and no other diagnostic in that path, and a tag level cannot mute an E line, so the two __android_log_print calls are nop'ed. Only the prints are lost: the iptables call, its status and the return values stay, and the overlay keeps u:object_r:netdagent_exec:s0 so the init service still enters through it. Hiding the lines does not make the net hints work. /vendor is never written: the patched daemon is a KernelSU overlay. From the shark8-gsi-logspam-cosmetics project.

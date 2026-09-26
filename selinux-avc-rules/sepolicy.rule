@@ -103,3 +103,23 @@ allow adbd self capability dac_read_search
 # mnld reading ro.* default_prop (open + read on the tmpfs prop files).
 allow mnld default_prop file open
 allow mnld default_prop file read
+
+# Fallback for the KernelSU /vendor overlay, for the two vendor domains that
+# load a patched library through it. The four overlay modules relabel their own
+# payload to vendor_file in post-fs-data.sh, so these rules should never be
+# needed - they are here because the relabel runs after KernelSU has already
+# mounted the overlay, and a vendor HAL that lost its library is fatal:
+# mtk_hal_power not linking android.hardware.power-service-mediatek.so means
+# android.hardware.power.IPower/default never registers and the device never
+# finishes booting. One perm per line: `ksud sepolicy apply` in 0.9.4 parses only
+# the first perm of a line and silently drops the rest.
+allow mtk_hal_power system_file file read
+allow mtk_hal_power system_file file getattr
+allow mtk_hal_power system_file file open
+allow mtk_hal_power system_file file map
+allow mtk_hal_power system_file file execute
+allow eara_io system_file file read
+allow eara_io system_file file getattr
+allow eara_io system_file file open
+allow eara_io system_file file map
+allow eara_io system_file file execute

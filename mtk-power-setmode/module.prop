@@ -1,0 +1,6 @@
+id=mtk_power_setmode
+name=Shark8 GSI mtkpower setMode fix
+version=v1.0
+versionCode=1
+author=Bastet
+description=Patches /vendor/lib64/android.hardware.power-service-mediatek.so on the Blackview Shark 8 GSI so the per-second "[setMode] unknown type" / "[setMode] type:6, enabled:0" spam from the GSI surfaceflinger stops. The GSI toggles Mode::EXPENSIVE_RENDERING (AIDL value 6) once per second, the vendor HAL implements an older Mode layout, so mode 6 hits the default arm and logs an error although mode 6 was a no-op anyway. The shared setMode INFO line is nop'ed out, out-of-range modes return AStatus_newOk silently, and jump-table entries 4 (VR) and 6 become silent OK. Modes 2/3/5/7 keep their original code paths. /vendor is never written: the patched library is a KernelSU overlay. From the shark8-gsi-logspam-cosmetics project.

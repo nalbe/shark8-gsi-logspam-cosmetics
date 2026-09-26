@@ -1,5 +1,10 @@
 # Vendor binaries and prebuilt tooling - never text-normalize these.
 *.so binary
 *.zip binary
-module/vendor/bin/* binary
-tools/eara_boost_probe binary
+netdagent-iptables/vendor/bin/netdagent binary
+eara-io-scene-detector/tools/eara_boost_probe binary
+
+# Everything else is text and stays LF. Android's sh (mksh) cannot exec a CRLF
+# shebang, and a stray CR in a sepolicy.rule line is a token the 0.9.4 ksud
+# parser does not expect. Binary files are re-declared above, later lines win.
+* text=auto eol=lf

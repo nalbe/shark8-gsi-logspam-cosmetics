@@ -1,0 +1,6 @@
+id=libpowerhal_noise
+name=Shark8 GSI libpowerhal ERROR fix
+version=v1.0
+versionCode=1
+author=Bastet
+description=Patches /vendor/lib64/libpowerhal.so on the Blackview Shark 8 GSI to drop three recurring ERROR sources that are artifacts of the GSI/vendor mix, not real faults. (1) "[getCPUFreq] error cid:2, nClusterNum:2": something still asks for cluster 2 on this 2-cluster MT6789 and gets the vendor's normal "skip this update" -1, only the log call is dropped, the return value stays. (2) The two foreground-pid nodes perfNotifyAppState writes, /proc/driver/thermal/ta_fg_pid and /sys/module/ged/parameters/gx_top_app_pid: both absent from this kernel, so the path literals are repointed at /dev/null, which makes the write a successful no-op instead of an ERROR pair, without touching the diagnostics of any other node write. (3) The whole netdagent error block (8 log calls: dispatchNetdagentCmd failed/is not ok, SetPriorityWithUID/ClearPriorityWithUID fail, sdk_netd_*_by_linkinfo, sprintf fail, no-more-empty-slot): the vendor netdagent socket is commented out in /vendor/etc/init/netdagent.rc, so every net hint fails; the error returns themselves are kept. /vendor is never written: the patched library is a KernelSU overlay. From the shark8-gsi-logspam-cosmetics project.

@@ -1,0 +1,6 @@
+id=charger_loglevel
+name=Shark8 GSI charger driver log level
+version=v1.0
+versionCode=1
+author=Bastet
+description=Silences the MTK charger driver printk on the Blackview Shark 8 GSI by writing 0 to its own runtime log-level knob, /sys/devices/platform/charger/charger_log_level. No binary is patched and nothing outside sysfs is touched. Honest scope: this does NOT stop sgm4154x_dump_register, the ~4 lines/s I2C register dump of the SGM4154x charger IC, because that function ignores charger_log_level (0 and 2 both tested) and sgm415xx plus mt6358_battery are built into vmlinux, so no .ko exists to patch and only a vmlinux patch can stop it. That dump is also charge-state driven and goes quiet off charge. The knob is a runtime value, so post-fs-data.sh re-asserts it every boot and it returns to the driver default when the module is removed. From the shark8-gsi-logspam-cosmetics project.

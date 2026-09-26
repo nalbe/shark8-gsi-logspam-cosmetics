@@ -1,0 +1,6 @@
+id=eara_io_scene_detector
+name=Shark8 GSI eara_io INFO firehose fix
+version=v1.0
+versionCode=1
+author=Bastet
+description=Patches /vendor/lib64/lib_eara_io_scndet.so on the Blackview Shark 8 GSI to drop the eara_io@boost / eara_io@eval INFO firehose that the MTK EARA-IO scene detector produces while a tagged app loads assets (~120 lines per game load). Only the three INFO calls are nop'ed: every state update before them stays and the ERROR paths of the same functions ("no data found", perfLockAcq/dlopen failures, "notify: acq perf_hdl") keep logging. The tag route (persist.log.tag.eara_io@boost=E) would very likely work too - '@' is legal in a property name, the original claim that it is not was wrong - but it was never re-tested against the stock library, so the verified binary patch stays. /vendor is never written: the patched library is a KernelSU overlay. From the shark8-gsi-logspam-cosmetics project.

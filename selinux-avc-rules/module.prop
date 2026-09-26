@@ -1,0 +1,6 @@
+id=selinux_avc_rules
+name=Shark8 GSI SELinux avc cosmetics
+version=v1.0
+versionCode=1
+author=Bastet
+description=Silences the recurring SELinux avc audit spam that comes from the GSI/vendor mix on the Blackview Shark 8. Pure allow rules, no permissive domain: system_app/radio/fingerprint probing hwservices this chipset does not provide, periodic process-getattr from system_server/surfaceflinger/vold on foreign domains, and the log_id_events flood (system_suspend wakelock probe ~1/s, battery-rail sysfs reads, keystore/rkpdapp binder getattr, priv_app<->gmscore_app /proc walks, gmscore_app adbd_prop reads, adbroot/adbd capability pairs, mnld default_prop reads). Classic space-separated rule format so old and new KernelSU both parse it; post-fs-data.sh re-applies through ksud and flushes the stale AVC cache. From the shark8-gsi-logspam-cosmetics project.

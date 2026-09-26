@@ -1,0 +1,6 @@
+id=gauge_loglevel
+name=Shark8 GSI fuel gauge driver log level
+version=v1.0
+versionCode=1
+author=Bastet
+description=Silences the MT6358 fuel gauge driver printk on the Blackview Shark 8 GSI by writing 0 to its own runtime log-level knob, /sys/devices/platform/soc/10026000.pwrap/10026000.pwrap:mt6366/mt6358-gauge/FG_daemon_log_level. No binary is patched and nothing outside sysfs is touched. Honest scope: this does NOT stop sgm4154x_dump_register, the ~4 lines/s I2C register dump of the SGM4154x charger IC, because that function lives in the charger driver and ignores the gauge knob; sgm415xx and mt6358_battery are built into vmlinux, so no .ko exists to patch and only a vmlinux patch can stop it. The knob is a runtime driver parameter, so post-fs-data.sh re-asserts it every boot and it returns to the driver default when the module is removed. From the shark8-gsi-logspam-cosmetics project.

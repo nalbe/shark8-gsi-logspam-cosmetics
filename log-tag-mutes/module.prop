@@ -1,0 +1,6 @@
+id=log_tag_mutes
+name=Shark8 GSI log tag mutes
+version=v1.0
+versionCode=1
+author=Bastet
+description=Holds four Android log tags at level E (errors only) on the Blackview Shark 8 GSI, killing the recurring INFO/W spam that the tag filter is the correct tool for. ImsProvisioningController: com.android.phone W "getTechsFromCarrierConfig failed" every ~30 s on an empty carrier-config bundle (the not-required fallback is correct). mtkpower_client: eara_io_service perf_lock_acq renewals, ~224 lines per game load. libPowerHal: the same QoS renewals from the library, ~418 lines per game load; real E-level errors keep printing. libPowerHal-bt: the BT low-latency perfScnEnable INFO lines. post-fs-data.sh re-asserts the props at every boot, before the power HAL starts. From the shark8-gsi-logspam-cosmetics project.

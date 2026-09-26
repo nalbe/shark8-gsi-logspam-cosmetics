@@ -1,0 +1,6 @@
+id=alarmtimer_freezer_off
+name=Shark8 GSI alarmtimer suspend-abort fix
+version=v1.0
+versionCode=1
+author=Bastet
+description=Stops the endless "E alarmtimer.1.auto: PM: failed to suspend: error -16" storm and lets the phone reach real s2idle sleep on the Blackview Shark 8 GSI. Cause: with the Android app-freezer enabled, a frozen task cannot consume or re-arm its POSIX alarm-clock timer, so the expiry stays in the RTC alarmtimer's timerqueue; alarmtimer_suspend() aborts every suspend attempt with -EBUSY while the next alarm is under 2 s away. Fix: force activity_manager_native_boot use_freezer=false (DeviceConfig, persistent) and clear cgroups left frozen. Cost: cached apps are no longer frozen, so they keep running; deep sleep works again. From the shark8-gsi-logspam-cosmetics project.

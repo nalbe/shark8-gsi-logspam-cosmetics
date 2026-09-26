@@ -1,0 +1,6 @@
+id=wlan_loglevel
+name=Shark8 GSI WLAN driver log level
+version=v1.0
+versionCode=1
+author=Bastet
+description=Drops the MTK conninfra WLAN driver log firehose on the Blackview Shark 8 GSI using the driver's own runtime knobs, no .ko patched. /proc/net/wlan/dbgLevel holds a per-module level mask that is 0x2f (ERROR|WARN|STATE|EVENT|INFO) on all 32 modules of the stock driver, so INFO is on for the whole driver; this sets 0x00..0x1f to 0x03 (ERROR|WARN only), which removes kalPerMonUpdate, kalDumpHifStats, halSetFWOwn, halSetDriverOwn and the cnmTimer* chatter (~64 lines per 300 dmesg lines -> 0) and drops the wlan0 IRQ from ~41/s so the device can reach a quiet suspend. /proc/net/wlan/autoPerfCfg gets ForceEnable:0, which stops the 1 Hz HIF stats dump the performance monitor does on its own. Note the node's help text documents only 0x00..0x0d; the driver has 32 modules and cnmTimer* lives in the undocumented DBG_CNM_IDX 0x10, so all 32 are written. Reverts to 0x2f plus ForceEnable:1. From the shark8-gsi-logspam-cosmetics project.
