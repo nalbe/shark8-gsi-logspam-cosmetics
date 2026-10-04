@@ -100,20 +100,31 @@ live only after the reboot.
 
     adb root
     adb shell md5sum /vendor/lib64/android.hardware.power-service-mediatek.so
-    adb shell getprop persist.log.tag.mtkpower@impl
-    adb shell 'logcat -c'
-    # screen off / screen on, or leave the phone idle on the desktop
-    adb shell 'logcat -d'
+    adb shell 'logcat -b all -c'
+    adb shell 'input keyevent 26; sleep 4; input keyevent 26'   # screen off / on
+    sleep 5
+    adb shell 'logcat -b all -d | grep setMode'
 
-Healthy: the md5 is the one `apply.sh` printed,
-`a52fb102917c13c0b15ed83a13598394` (stock is
-`40aea46435089ab1e2fc002d67f8ec2d`, 19776 bytes), and the idle or screen-toggle
-window contains no `setMode` lines at all except the 2 legitimate
-`[setMode] Disable All` / `Restore All` lines from the mode 7 handler, once per
-screen toggle. `persist.log.tag.mtkpower@impl` still returns the stock `I`: this
-module changes no log level. Broken: the stock md5 (overlay not mounted, reboot
-missing) or any `[setMode] unknown type` / `[setMode] type:6, enabled:0` line
-(patch not in place).
+Compare the md5 against the **constant `a52fb102917c13c0b15ed83a13598394`**, and
+only against it. Do not compare `/vendor/lib64/...` with the module payload: the
+`/vendor` overlay puts that very payload in the upper layer, so the two paths are
+one file and their md5 match says nothing about the patch.
+
+    adb shell mount | grep 'on /vendor type overlay'    # must list .../mtk_power_setmode/vendor
+
+Healthy: md5 `a52fb102917c13c0b15ed83a13598394` (stock is
+`40aea46435089ab1e2fc002d67f8ec2d`, 19776 bytes), the module dir in the overlay
+lowerdir, and the screen-toggle window containing no `setMode` line except the 2
+legitimate `[setMode] Disable All` / `Restore All` lines from the mode 7 handler -
+those two are the proof that the patched function is still reached, since 0x31F0
+dropped the entry log. Broken: `40aea46435089ab1e2fc002d67f8ec2d` (overlay not
+mounted, reboot missing), the module dir absent from the overlay, no `setMode`
+line at all after a screen toggle (mode 7 path lost), or any `[setMode] unknown
+type` / `[setMode] type:6, enabled:0` line (patch not in place).
+
+`persist.log.tag.mtkpower@impl` is irrelevant here: this module changes no log
+level, and a manual `setprop persist.log.tag.mtkpower@impl V` from an earlier
+diagnosis will keep it at `V`.
 
 ## Revert
 

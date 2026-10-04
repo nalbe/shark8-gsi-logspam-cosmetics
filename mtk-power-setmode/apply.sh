@@ -11,16 +11,31 @@ set -e
 DIR=$(cd "$(dirname "$0")" && pwd)
 MOD=/data/adb/modules/mtk_power_setmode
 SO=android.hardware.power-service-mediatek.so
+PATCHED=a52fb102917c13c0b15ed83a13598394
+STOCK=40aea46435089ab1e2fc002d67f8ec2d
+
+# Refuse an unpatched payload: the /vendor overlay makes the installed copy
+# indistinguishable from the live one, so a stock payload would stay invisible.
+SRC="$DIR/vendor/lib64/$SO"
+GOT=$(md5sum "$SRC" | cut -d' ' -f1)
+if [ "$GOT" = "$STOCK" ]; then
+    echo "[!] payload is the unpatched stock library - run patch_powerhal.ps1 first" >&2
+    exit 1
+fi
+[ "$GOT" = "$PATCHED" ] || {
+    echo "[!] payload md5 $GOT, want $PATCHED" >&2
+    exit 1
+}
 
 echo "[*] installing module files into $MOD"
 mkdir -p "$MOD/vendor/lib64"
 cp -f "$DIR/module.prop" "$MOD/module.prop"
-cp -f "$DIR/vendor/lib64/$SO" "$MOD/vendor/lib64/$SO"
+cp -f "$SRC" "$MOD/vendor/lib64/$SO"
 chmod 644 "$MOD/module.prop" "$MOD/vendor/lib64/$SO"
 chcon -R u:object_r:vendor_file:s0 "$MOD/vendor" 2>/dev/null || true
 
-echo "[*] payload md5"
+echo "[*] installed payload md5"
 echo "    $(md5sum "$MOD/vendor/lib64/$SO" | cut -d' ' -f1)  $SO"
-echo "    want a52fb102917c13c0b15ed83a13598394  (stock 40aea46435089ab1e2fc002d67f8ec2d)"
+echo "    want $PATCHED  (stock $STOCK)"
 
 echo "[+] done. REBOOT to mount the vendor overlay: adb reboot"
