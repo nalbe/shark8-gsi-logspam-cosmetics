@@ -1,11 +1,6 @@
 #!/system/bin/sh
 # findfrozen.sh - list the cgroups the app-freezer has frozen, with their processes.
 #
-# The freezer is the root cause of the alarmtimer suspend-abort storm (see
-# README.md): every entry printed here is a candidate owner of a POSIX
-# alarm-clock timer that can no longer be consumed. Before the fix this printed
-# 100+ cgroups; with use_freezer=false it prints none.
-#
 # Usage on device (as root):
 #   sh findfrozen.sh
 #

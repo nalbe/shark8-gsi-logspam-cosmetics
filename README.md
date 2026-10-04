@@ -3,10 +3,9 @@
 Mostly cosmetic patches for the Blackview Shark 8 running an Android 13/14 AOSP
 GSI on the stock vendor image (KernelSU 0.9.4, kernel
 `5.10.223-rama982-gki-v1.19-ksu`). Silences recurring sources of logspam caused
-by GSI/vendor mixing, and fixes the two things that were real battery problems
-because they kept the device from ever reaching suspend: the alarmtimer
-suspend-abort storm and the `wlan0` IRQ. No permissive domains, and no
-functional change outside those two.
+by GSI/vendor mixing, and fixes the one thing that was a real battery problem
+because it kept the device from ever reaching suspend: the `wlan0` IRQ. No
+permissive domains, and no functional change outside that one.
 
 Every patch in this project is one directory, one KernelSU module, one
 README, one flashable zip. Nothing is shared between them except this index.
@@ -21,7 +20,6 @@ README, one flashable zip. Nothing is shared between them except this index.
 | [`libpowerhal-noise/`](libpowerhal-noise) | `libpowerhal_noise` | `[getCPUFreq] error cid:2`, the two absent foreground-pid nodes, the netdagent error block (8 calls) | overlay of `libpowerhal.so` |
 | [`eara-io-scene-detector/`](eara-io-scene-detector) | `eara_io_scene_detector` | `eara_io@boost` / `eara_io@eval` INFO firehose (~120 lines per game load) | overlay of `lib_eara_io_scndet.so` |
 | [`netdagent-iptables/`](netdagent-iptables) | `netdagent_iptables` | the netdagent daemon's own `exec() res=0, status=256` / `run command firewall failed` ERROR pair | overlay of `netdagent` |
-| [`alarmtimer-freezer/`](alarmtimer-freezer) | `alarmtimer_freezer_off` | the `alarmtimer.1.auto ... error -16` suspend-abort storm - **not cosmetic**, see below | DeviceConfig `use_freezer=false` |
 | [`wlan-loglevel/`](wlan-loglevel) | `wlan_loglevel` | the `[wlan]` conninfra firehose, 6-8 lines/s while any WiFi traffic moves (`kalPerMonUpdate`, `kalDumpHifStats`, `halSetFWOwn`, `halSetDriverOwn`, `cnmTimer*`) - **not cosmetic**, the `wlan0` IRQ ran at ~41/s | `/proc/net/wlan/dbgLevel` `0x2f` -> `0x03` on all 32 modules + `autoPerfCfg ForceEnable:0` |
 | [`charger-loglevel/`](charger-loglevel) | `charger_loglevel` | what the MTK charger driver prints through its own knob - **no measured win**, see below | `charger_log_level` = 0 |
 | [`gauge-loglevel/`](gauge-loglevel) | `gauge_loglevel` | what the MT6358 fuel gauge driver prints through its own knob - **no measured win**, see below | `FG_daemon_log_level` = 0 |
@@ -30,13 +28,11 @@ Each row links to that patch's README, which has the full analysis: the log
 lines, the root cause, the byte-level patch, the install/verify/revert commands
 and the on-device evidence.
 
-`alarmtimer_freezer_off` and `wlan_loglevel` are the two that are not cosmetic.
-On this device the storm the first one fixes was a real battery problem - every
-s2idle attempt was aborted, so the phone never slept. The second one keeps the
-`wlan0` IRQ at ~41/s, which has the same effect for the same reason: the device
-never reaches a quiet suspend. They ship separately from the rest for exactly
-that reason: each changes a subsystem setting instead of silencing a log, and
-you may well want to be able to pull one without touching the log patches.
+`wlan_loglevel` is the one that is not cosmetic. The `wlan0` IRQ ran at ~41/s,
+which has the same effect as an aborted suspend: the device never reaches a
+quiet suspend. It ships separately from the rest for that reason - it changes a
+subsystem setting instead of silencing a log, and you may well want to pull it
+without touching the log patches.
 
 `charger_loglevel` and `gauge_loglevel` are the opposite case, and their READMEs
 say so plainly: they are real driver knobs set to 0, but they do **not** stop
@@ -57,7 +53,6 @@ project:
 - Each of the four binary-patch directories owns exactly one file under
   `/vendor`, and `/vendor` is never written to - the patched file is a KernelSU
   overlay (dm-verity stays happy, `rm` of the module restores the stock file).
-- `alarmtimer-freezer` owns `activity_manager_native_boot use_freezer`.
 - `wlan-loglevel` owns `/proc/net/wlan/dbgLevel` and `/proc/net/wlan/autoPerfCfg`.
 - `charger-loglevel` owns `charger_log_level`, `gauge-loglevel` owns
   `FG_daemon_log_level`. Both are driver module parameters, i.e. runtime-only
@@ -152,13 +147,12 @@ Flash the zips you want in the KernelSU Manager, one per patch:
     release/shark8_libpowerhal_noise_v1.0.zip
     release/shark8_eara_io_scene_detector_v1.0.zip
     release/shark8_netdagent_iptables_v1.0.zip
-    release/shark8_alarmtimer_freezer_off_v1.0.zip
     release/shark8_wlan_loglevel_v1.0.zip
     release/shark8_charger_loglevel_v1.0.zip
     release/shark8_gauge_loglevel_v1.0.zip
 
-then reboot once. All ten together reproduce what the single
-`selinux_cosmetics` v5.3 module did, plus the freezer fix, plus the three
+then reboot once. All nine together reproduce what the single
+`selinux_cosmetics` v5.3 module did, plus the three
 modules split out of the old `shark8_quietlogs` module.
 
 Or install in place on a rooted device, per patch:
@@ -169,7 +163,6 @@ Or install in place on a rooted device, per patch:
     sh libpowerhal-noise/apply.sh
     sh eara-io-scene-detector/apply.sh
     sh netdagent-iptables/apply.sh
-    sh alarmtimer-freezer/apply.sh
     sh wlan-loglevel/apply.sh
     sh charger-loglevel/apply.sh
     sh gauge-loglevel/apply.sh
@@ -189,8 +182,8 @@ Build the zips from the source tree with:
 Per patch, `sh <dir>/revert.sh`, then reboot where the module owned an overlay
 or a boot script. In the KernelSU Manager, remove the module by id
 (`selinux_avc_rules`, `log_tag_mutes`, `mtk_power_setmode`, `libpowerhal_noise`,
-`eara_io_scene_detector`, `netdagent_iptables`, `alarmtimer_freezer_off`,
-`wlan_loglevel`, `charger_loglevel`, `gauge_loglevel`).
+`eara_io_scene_detector`, `netdagent_iptables`, `wlan_loglevel`,
+`charger_loglevel`, `gauge_loglevel`).
 
 Two things no revert can take back without a reboot, both documented in the
 patch README:
@@ -274,17 +267,17 @@ there is nothing to put in a module here.
     eara-io-scene-detector/  eara_io@boost/@eval patch + patch_libeara.ps1 + overlay
                            + tools/eara_boost_probe.c (device-side trigger, verification only)
     netdagent-iptables/    daemon patch + patch_netdagent.ps1 + overlay
-    alarmtimer-freezer/    the freezer fix, own README
     wlan-loglevel/         dbgLevel 0x2f -> 0x03 on 32 modules + autoPerfCfg off
     charger-loglevel/      charger_log_level = 0
     gauge-loglevel/        FG_daemon_log_level = 0
+    diagnostics/            suspend-abort measurement scripts, not a module
     release/               flashable zips, one per module
     release/legacy/        the pre-split combined-module zips (v5.0 .. v5.3), kept for reference
     build.ps1              zip every module directory
 
 ## History of the pre-split module
 
-Before the split, all of the above except `alarmtimer_freezer_off` was one
+Before the split, all of the above except `wlan_loglevel` was one
 KernelSU module, `selinux_cosmetics`. The per-patch READMEs carry the
 on-device evidence; this is only the map of what shipped when.
 
